@@ -234,7 +234,7 @@ async def ConnectMetaTrader(update: Update, trade: dict, enterTrade: bool):
         deployed_states = ['DEPLOYING', 'DEPLOYED']
 
         if initial_state not in deployed_states:
-            #  wait until account is deployed and connected to broker
+            # wait until account is deployed and connected to broker
             logger.info('Deploying account')
             await account.deploy()
 
@@ -274,6 +274,9 @@ async def ConnectMetaTrader(update: Update, trade: dict, enterTrade: bool):
 
             # enters trade on to MetaTrader account
             update.effective_message.reply_text("Entering trade on MetaTrader Account ... 👨🏾‍💻")
+
+            # initialize result variable before try block
+            result = None
 
             try:
                 # executes buy market execution order
@@ -322,7 +325,6 @@ async def ConnectMetaTrader(update: Update, trade: dict, enterTrade: bool):
         update.effective_message.reply_text(f"There was an issue with the connection 😕\n\nError Message:\n{error}")
     
     return
-
 
 # Handler Functions
 def PlaceTrade(update: Update, context: CallbackContext) -> int:
