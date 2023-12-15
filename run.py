@@ -39,19 +39,20 @@ CALCULATE, TRADE, DECISION = range(3)
 # allowed FX symbols
 SYMBOLS = ['AUDCAD', 'AUDCHF', 'AUDJPY', 'AUDNZD', 'AUDUSD', 'CADCHF', 'CADJPY', 'CHFJPY', 'EURAUD', 'EURCAD', 'EURCHF', 'EURGBP', 'EURJPY', 'EURNZD', 'EURUSD', 'GBPAUD', 'GBPCAD', 'GBPCHF', 'GBPJPY', 'GBPNZD', 'GBPUSD', 'NOW', 'NZDCAD', 'NZDCHF', 'NZDJPY', 'NZDUSD', 'USDCAD', 'USDCHF', 'USDJPY', 'XAGUSD', 'XAUUSD']
 
+# Default risk factor for 0.01 lot size
+DEFAULT_RISK_FACTOR = 0.01
+
 # RISK FACTOR
-RISK_FACTOR = float(os.environ.get("RISK_FACTOR"))
-
-
+RISK_FACTOR = float(os.environ.get("RISK_FACTOR", DEFAULT_RISK_FACTOR))
+    
 # Helper Functions
-def ParseSignal(signal: str) -> dict:
-    """Starts process of parsing signal and entering trade on MetaTrader account.
+def GetTradeInformation(update: Update, trade: dict, balance: float) -> None:
+    """Calculates information from given trade including stop loss and take profit in pips, position size, and potential loss/profit.
 
     Arguments:
-        signal: trading signal
-
-    Returns:
-        a dictionary that contains trade signal information
+        update: update from Telegram
+        trade: dictionary that stores trade information
+        balance: current balance of the MetaTrader account
     """
 
     # converts message to list of strings for parsing
@@ -95,8 +96,9 @@ def ParseSignal(signal: str) -> dict:
 
     return trade
 
+# Helper Functions
 def GetTradeInformation(update: Update, trade: dict, balance: float) -> None:
-    """Calculates information from given trade including stop loss and take profit in pips, posiition size, and potential loss/profit.
+    """Calculates information from given trade including stop loss and take profit in pips, position size, and potential loss/profit.
 
     Arguments:
         update: update from Telegram
@@ -104,24 +106,26 @@ def GetTradeInformation(update: Update, trade: dict, balance: float) -> None:
         balance: current balance of the MetaTrader account
     """
 
+    # ...
+
     # calculates the stop loss in pips
     if(trade['Symbol'] == 'XAUUSD'):
         multiplier = 0.1
-
     elif(trade['Symbol'] == 'XAGUSD'):
         multiplier = 0.001
-
     elif(str(trade['Entry']).index('.') >= 2):
         multiplier = 0.01
-
     else:
         multiplier = 0.0001
 
     # calculates the stop loss in pips
     stopLossPips = abs(round((trade['StopLoss'] - trade['Entry']) / multiplier))
 
-    # calculates the position size using stop loss and RISK FACTOR
-    trade['PositionSize'] = math.floor(((balance * trade['RiskFactor']) / stopLossPips) / 10 * 100) / 100
+    # sets the default risk factor for 0.01 lot size
+    default_risk_factor = 0.01
+
+    # calculates the position size using the default risk factor for 0.01 lot size
+    trade['PositionSize'] = default_risk_factor
 
     # calculates the take profit(s) in pips
     takeProfitPips = []
@@ -130,8 +134,8 @@ def GetTradeInformation(update: Update, trade: dict, balance: float) -> None:
 
     # creates table with trade information
     table = CreateTable(trade, balance, stopLossPips, takeProfitPips)
-    
-    # sends user trade information and calcualted risk
+
+    # sends user trade information and calculated risk
     update.effective_message.reply_text(f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
 
     return
