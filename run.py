@@ -80,6 +80,41 @@ def ParseSignal(signal: str, risk_factor: float) -> dict:
 
     # checks whether or not to convert entry to float because of market execution option ("NOW")
     if trade['OrderType'] == 'Buy' or trade['OrderType'] == 'Sell':
+        trade['Entry'] = 'NOW'  # Set Entry to 'NOW' directly
+    else:
+        trade['Entry'] = float(signal[1].split()[-1])
+
+    trade['StopLoss'] = float(signal[2].split()[-1])
+    trade['TP'] = [float(signal[3].split()[-1])]
+
+    # checks if there's a fourth line and parses it for TP2
+    if len(signal) > 4:
+        trade['TP'].append(float(signal[4].split()[-1]))
+
+    # adds risk factor to trade
+    trade['RiskFactor'] = risk_factor
+
+    return trade
+
+    # determines the order type of the trade
+    order_keywords = ['Buy Limit', 'Sell Limit', 'Buy Stop', 'Sell Stop', 'Buy', 'Sell']
+    for keyword in order_keywords:
+        if keyword.lower() in signal[0].lower():
+            trade['OrderType'] = keyword
+            break
+    else:
+        # returns an empty dictionary if an invalid order type was given
+        return {}
+
+    # extracts symbol from trade signal
+    trade['Symbol'] = (signal[0].split())[-1].upper()
+
+    # checks if the symbol is valid, if not, returns an empty dictionary
+    if trade['Symbol'] not in SYMBOLS:
+        return {}
+
+    # checks whether or not to convert entry to float because of market execution option ("NOW")
+    if trade['OrderType'] == 'Buy' or trade['OrderType'] == 'Sell':
         trade['Entry'] = float(signal[1].split()[-1]) if signal[1].strip() != 'NOW' else 'NOW'
     else:
         trade['Entry'] = float(signal[1].split()[-1])
