@@ -499,7 +499,7 @@ def error(update: Update, context: CallbackContext) -> None:
     return
 
 def Trade_Command(update: Update, context: CallbackContext) -> int:
-    """Asks user to enter the trade they would like to place.
+    """Parses trade and places on MetaTrader account.
 
     Arguments:
         update: update from Telegram
@@ -535,11 +535,6 @@ def Trade_Command(update: Update, context: CallbackContext) -> int:
             # returns to TRADE state to reattempt trade parsing
             return TRADE
 
-    # asks user to enter the trade
-    update.effective_message.reply_text("Please enter the trade that you would like to place.")
-
-    return TRADE
-
 def Calculation_Command(update: Update, context: CallbackContext) -> int:
     """Asks user to enter the trade they would like to calculate trade information for.
 
@@ -574,19 +569,20 @@ def main() -> None:
     # help command handler
     dp.add_handler(CommandHandler("help", help))
 
-    # Modify the conversation handler to handle any text message as a trigger to enter the trade
+    # conversation handler for entering trade or calculating trade information
 conv_handler = ConversationHandler(
     entry_points=[MessageHandler(Filters.text & ~Filters.command, Trade_Command)],
     states={
-        TRADE: [MessageHandler(Filters.text & ~Filters.command, PlaceTrade)],
         CALCULATE: [MessageHandler(Filters.text & ~Filters.command, CalculateTrade)],
         DECISION: [CommandHandler("yes", PlaceTrade), CommandHandler("no", cancel)]
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
-    # conversation handler for entering trade or calculating trade information
-    dp.add_handler(conv_handler)
+# ...
+
+# Modify the conversation handler to handle any text message as a trigger to enter the trade
+dp.add_handler(conv_handler)
 
     # message handler for all messages that are not included in conversation handler
     dp.add_handler(MessageHandler(Filters.text, unknown_command))
