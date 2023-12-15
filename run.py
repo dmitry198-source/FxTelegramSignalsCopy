@@ -104,8 +104,8 @@ def ParseSignal(signal: str) -> dict:
     if(len(signal) > 4):
         trade['TP'].append(float(signal[4].split()[-1]))
     
-    # adds risk factor to trade
-    trade['RiskFactor'] = RISK_FACTOR
+    # removes the risk factor from the trade
+    trade['LotSize'] = 0.01  # Set lot size to 0.01
 
     return trade
 
