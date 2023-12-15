@@ -45,58 +45,43 @@ DEFAULT_RISK_FACTOR = float(os.environ.get("RISK_FACTOR", 0.01))
 
 # Helper Functions
 def ParseSignal(signal: str, risk_factor: float) -> dict:
-    """Starts the process of parsing the signal and entering the trade on the MetaTrader account.
+    """Parses the signal and extracts trade information.
 
-    Arguments:
-        signal: trading signal
-        risk_factor: the risk factor for position sizing
+    Args:
+        signal (str): Trading signal.
+        risk_factor (float): Risk factor for position sizing.
 
     Returns:
-        a dictionary that contains trade signal information
+        dict: Dictionary containing trade signal information.
     """
-
-    # converts message to list of strings for parsing
-    signal = signal.splitlines()
-    signal = [line.rstrip() for line in signal]
-
     trade = {}
 
-    # determines the order type of the trade
-    order_keywords = ['Buy Limit', 'Sell Limit', 'Buy Stop', 'Sell Stop', 'Buy', 'Sell']
-    for keyword in order_keywords:
-        if keyword.lower() in signal[0].lower():
-            trade['OrderType'] = keyword
-            break
-    else:
-        # Log the invalid order type
-        logger.error('Invalid order type: %s', signal[0])
+    # Extract signal components using regular expressions
+    matches = re.findall(r'(BUY|SELL) (\w+)', signal)
+    if not matches:
+        # Log and return if the signal format is not recognized
+        logger.error('Invalid signal format: %s', signal)
         return {}
 
-    # extracts symbol from trade signal
-    trade['Symbol'] = (signal[0].split())[-1].upper()
+    order_type, symbol = matches[0]
+    trade['OrderType'] = order_type
+    trade['Symbol'] = symbol.upper()
 
-    # Log the parsed signal
-    logger.info('Parsed signal: %s', trade)
+    # Extract entry, stop loss, and take profits
+    entry_match = re.search(r'@ (\d+(\.\d+)?)|at cmp', signal)
+    sl_match = re.search(r'SL@ (\d+(\.\d+)?)', signal)
+    tp_matches = re.findall(r'TP\d+@ (\d+(\.\d+)?)', signal)
 
-    # checks if the symbol is valid, if not, log and return an empty dictionary
-    if trade['Symbol'] not in SYMBOLS:
-        logger.error('Invalid symbol: %s', trade['Symbol'])
+    if not entry_match or not sl_match:
+        # Log and return if entry or stop loss is not found
+        logger.error('Entry or stop loss not found in signal: %s', signal)
         return {}
 
-    # checks whether or not to convert entry to float because of market execution option ("NOW")
-    if trade['OrderType'] == 'Buy' or trade['OrderType'] == 'Sell':
-        trade['Entry'] = 'NOW'  # Set Entry to 'NOW' directly
-    else:
-        trade['Entry'] = float(signal[1].split()[-1])
+    trade['Entry'] = float(entry_match.group(1)) if entry_match.group(1) != 'at cmp' else 'NOW'
+    trade['StopLoss'] = float(sl_match.group(1))
+    trade['TP'] = [float(tp_match[0]) for tp_match in tp_matches]
 
-    trade['StopLoss'] = float(signal[2].split()[-1])
-    trade['TP'] = [float(signal[3].split()[-1])]
-
-    # checks if there's a fourth line and parses it for TP2
-    if len(signal) > 4:
-        trade['TP'].append(float(signal[4].split()[-1]))
-
-    # adds risk factor to trade
+    # Add risk factor to trade
     trade['RiskFactor'] = risk_factor
 
     return trade
