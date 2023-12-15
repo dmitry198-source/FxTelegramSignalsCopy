@@ -312,7 +312,7 @@ def PlaceTrade(update: Update, context: CallbackContext) -> int:
 
         try: 
             # parses signal from Telegram message
-            trade = ParseSignal(update.effective_message.text)
+            trade = ParseSignal(update.effective_message.text, DEFAULT_RISK_FACTOR)
             
             # checks if there was an issue with parsing the trade
             if(not(trade)):
@@ -351,7 +351,7 @@ def CalculateTrade(update: Update, context: CallbackContext) -> int:
 
         try: 
             # parses signal from Telegram message
-            trade = ParseSignal(update.effective_message.text)
+            trade = ParseSignal(update.effective_message.text, DEFAULT_RISK_FACTOR)
             
             # checks if there was an issue with parsing the trade
             if(not(trade)):
