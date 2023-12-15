@@ -505,13 +505,36 @@ def Trade_Command(update: Update, context: CallbackContext) -> int:
         update: update from Telegram
         context: CallbackContext object that stores commonly used objects in handler callbacks
     """
-    if(not(update.effective_message.chat.username == TELEGRAM_USER)):
+    if not (update.effective_message.chat.username == TELEGRAM_USER):
         update.effective_message.reply_text("You are not authorized to use this bot! 🙅🏽‍♂️")
         return ConversationHandler.END
-    
+
     # initializes the user's trade as empty prior to input and parsing
     context.user_data['trade'] = None
-    
+
+    # checks if there is any text in the message
+    if update.message.text:
+        try:
+            # parses signal from Telegram message
+            trade = ParseSignal(update.message.text, DEFAULT_RISK_FACTOR)
+
+            # checks if there was an issue with parsing the trade
+            if not trade:
+                raise Exception('Invalid Trade')
+
+            # sets the user context trade equal to the parsed trade
+            context.user_data['trade'] = trade
+            update.effective_message.reply_text(
+                "Trade Successfully Parsed! 🥳\nConnecting to MetaTrader ... (May take a while) ⏰")
+
+        except Exception as error:
+            logger.error(f'Error: {error}')
+            errorMessage = f"There was an error parsing this trade 😕\n\nError: {error}\n\nPlease re-enter trade with this format:\n\nBUY/SELL SYMBOL\nEntry \nSL \nTP \n\nOr use the /cancel to command to cancel this action."
+            update.effective_message.reply_text(errorMessage)
+
+            # returns to TRADE state to reattempt trade parsing
+            return TRADE
+
     # asks user to enter the trade
     update.effective_message.reply_text("Please enter the trade that you would like to place.")
 
@@ -551,15 +574,16 @@ def main() -> None:
     # help command handler
     dp.add_handler(CommandHandler("help", help))
 
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("trade", Trade_Command), CommandHandler("calculate", Calculation_Command)],
-        states={
-            TRADE: [MessageHandler(Filters.text & ~Filters.command, PlaceTrade)],
-            CALCULATE: [MessageHandler(Filters.text & ~Filters.command, CalculateTrade)],
-            DECISION: [CommandHandler("yes", PlaceTrade), CommandHandler("no", cancel)]
-        },
-        fallbacks=[CommandHandler("cancel", cancel)],
-    )
+    # Modify the conversation handler to handle any text message as a trigger to enter the trade
+conv_handler = ConversationHandler(
+    entry_points=[MessageHandler(Filters.text & ~Filters.command, Trade_Command)],
+    states={
+        TRADE: [MessageHandler(Filters.text & ~Filters.command, PlaceTrade)],
+        CALCULATE: [MessageHandler(Filters.text & ~Filters.command, CalculateTrade)],
+        DECISION: [CommandHandler("yes", PlaceTrade), CommandHandler("no", cancel)]
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
 
     # conversation handler for entering trade or calculating trade information
     dp.add_handler(conv_handler)
