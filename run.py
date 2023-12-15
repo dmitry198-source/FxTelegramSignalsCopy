@@ -180,18 +180,18 @@ def GetTradeInformation(update: Update, trade: dict, balance: float) -> None:
 
     return
 
-def CreateTable(trade: dict, balance: float, stopLossPips: int, takeProfitPips: list) -> PrettyTable:
-    """Creates PrettyTable object to display trade information to the user.
+def CreateTable(trade: dict, balance: float, stopLossPips: int, takeProfitPips: int) -> PrettyTable:
+    """Creates PrettyTable object to display trade information to user.
 
     Arguments:
         trade: dictionary that stores trade information
         balance: current balance of the MetaTrader account
         stopLossPips: the difference in pips from stop loss price to entry price
-        takeProfitPips: a list of integers, each representing the difference in pips from take profit price to entry price
 
     Returns:
         a Pretty Table object that contains trade information
     """
+
     # creates prettytable object
     table = PrettyTable()
     
@@ -339,72 +339,243 @@ async def ConnectMetaTrader(update: Update, trade: dict, enterTrade: bool):
 
 
 # Handler Functions
-# ... (imports and configurations)
+def PlaceTrade(update: Update, context: CallbackContext) -> int:
+    """Parses trade and places on MetaTrader account.   
+    
+    Arguments:
+        update: update from Telegram
+        context: CallbackContext object that stores commonly used objects in handler callbacks
+    """
 
-# Other functions (ParseSignal, GetTradeInformation, Calculation_Command, etc.) remain unchanged
+    # checks if the trade has already been parsed or not
+    if(context.user_data['trade'] == None):
 
-# Handler Functions
-def PlaceTrade(update: Update, context: CallbackContext) -> None:
-    """Parses and places trade based on incoming signal.
+        try: 
+            # parses signal from Telegram message
+            trade = ParseSignal(update.effective_message.text, DEFAULT_RISK_FACTOR)
+            
+            # checks if there was an issue with parsing the trade
+            if(not(trade)):
+                raise Exception('Invalid Trade')
+
+            # sets the user context trade equal to the parsed trade
+            context.user_data['trade'] = trade
+            update.effective_message.reply_text("Trade Successfully Parsed! 🥳\nConnecting to MetaTrader ... \n(May take a while) ⏰")
+        
+        except Exception as error:
+            logger.error(f'Error: {error}')
+            errorMessage = f"There was an error parsing this trade 😕\n\nError: {error}\n\nPlease re-enter trade with this format:\n\nBUY/SELL SYMBOL\nEntry \nSL \nTP \n\nOr use the /cancel to command to cancel this action."
+            update.effective_message.reply_text(errorMessage)
+
+            # returns to TRADE state to reattempt trade parsing
+            return TRADE
+    
+    # attempts connection to MetaTrader and places trade
+    asyncio.run(ConnectMetaTrader(update, context.user_data['trade'], True))
+    
+    # removes trade from user context data
+    context.user_data['trade'] = None
+
+    return ConversationHandler.END
+
+def CalculateTrade(update: Update, context: CallbackContext) -> int:
+    """Parses trade and places on MetaTrader account.   
+    
+    Arguments:
+        update: update from Telegram
+        context: CallbackContext object that stores commonly used objects in handler callbacks
+    """
+
+    # checks if the trade has already been parsed or not
+    if(context.user_data['trade'] == None):
+
+        try: 
+            # parses signal from Telegram message
+            trade = ParseSignal(update.effective_message.text, DEFAULT_RISK_FACTOR)
+            
+            # checks if there was an issue with parsing the trade
+            if(not(trade)):
+                raise Exception('Invalid Trade')
+
+            # sets the user context trade equal to the parsed trade
+            context.user_data['trade'] = trade
+            update.effective_message.reply_text("Trade Successfully Parsed! 🥳\nConnecting to MetaTrader ... (May take a while) ⏰")
+        
+        except Exception as error:
+            logger.error(f'Error: {error}')
+            errorMessage = f"There was an error parsing this trade 😕\n\nError: {error}\n\nPlease re-enter trade with this format:\n\nBUY/SELL SYMBOL\nEntry \nSL \nTP \n\nOr use the /cancel to command to cancel this action."
+            update.effective_message.reply_text(errorMessage)
+
+            # returns to CALCULATE to reattempt trade parsing
+            return CALCULATE
+    
+    # attempts connection to MetaTrader and calculates trade information
+    asyncio.run(ConnectMetaTrader(update, context.user_data['trade'], False))
+
+    # asks if user if they would like to enter or decline trade
+    update.effective_message.reply_text("Would you like to enter this trade?\nTo enter, select: /yes\nTo decline, select: /no")
+
+    return DECISION
+
+def unknown_command(update: Update, context: CallbackContext) -> None:
+    """Checks if the user is authorized to use this bot or shares to use /help command for instructions.
 
     Arguments:
         update: update from Telegram
         context: CallbackContext object that stores commonly used objects in handler callbacks
     """
-    if not update.effective_message.chat.username == TELEGRAM_USER:
+    if(not(update.effective_message.chat.username == TELEGRAM_USER)):
         update.effective_message.reply_text("You are not authorized to use this bot! 🙅🏽‍♂️")
         return
 
-    try:
-        # Parse signal directly from the message
-        signal = update.effective_message.text
-        trade = ParseSignal(signal, DEFAULT_RISK_FACTOR)
+    update.effective_message.reply_text("Unknown command. Use /trade to place a trade or /calculate to find information for a trade. You can also use the /help command to view instructions for this bot.")
 
-        if not trade:
-            raise Exception('Invalid Trade')
+    return
 
-        # Connect to MetaTrader and place the trade
-        asyncio.run(ConnectMetaTrader(update, trade, True))
-
-    except Exception as error:
-        logger.error(f'Error: {error}')
-        errorMessage = f"There was an error processing this trade 😕\n\nError: {error}\n\nPlease make sure your signal format is correct."
-        update.effective_message.reply_text(errorMessage)
-
-def unknown_command(update, context):
-    update.message.reply_text("Sorry, I didn't understand that command.")
 
 # Command Handlers
-def Trade_Command(update: Update, context: CallbackContext) -> None:
-    """Does not have any specific functionality. Trades are processed directly in MessageHandler.
+def welcome(update: Update, context: CallbackContext) -> None:
+    """Sends welcome message to user.
 
     Arguments:
         update: update from Telegram
         context: CallbackContext object that stores commonly used objects in handler callbacks
     """
-    pass
+
+    welcome_message = "Welcome to the FX Signal Copier Telegram Bot! 💻💸\n\nYou can use this bot to enter trades directly from Telegram and get a detailed look at your risk to reward ratio with profit, loss, and calculated lot size. You are able to change specific settings such as allowed symbols, risk factor, and more from your personalized Python script and environment variables.\n\nUse the /help command to view instructions and example trades."
+    
+    # sends messages to user
+    update.effective_message.reply_text(welcome_message)
+
+    return
+
+def help(update: Update, context: CallbackContext) -> None:
+    """Sends a help message when the command /help is issued
+
+    Arguments:
+        update: update from Telegram
+        context: CallbackContext object that stores commonly used objects in handler callbacks
+    """
+
+    help_message = "This bot is used to automatically enter trades onto your MetaTrader account directly from Telegram. To begin, ensure that you are authorized to use this bot by adjusting your Python script or environment variables.\n\nThis bot supports all trade order types (Market Execution, Limit, and Stop)\n\nAfter an extended period away from the bot, please be sure to re-enter the start command to restart the connection to your MetaTrader account."
+    commands = "List of commands:\n/start : displays welcome message\n/help : displays list of commands and example trades\n/trade : takes in user inputted trade for parsing and placement\n/calculate : calculates trade information for a user inputted trade"
+    trade_example = "Example Trades 💴:\n\n"
+    market_execution_example = "Market Execution:\nBUY GBPUSD\nEntry NOW\nSL 1.14336\nTP 1.28930\nTP 1.29845\n\n"
+    limit_example = "Limit Execution:\nBUY LIMIT GBPUSD\nEntry 1.14480\nSL 1.14336\nTP 1.28930\n\n"
+    note = "You are able to enter up to two take profits. If two are entered, both trades will use half of the position size, and one will use TP1 while the other uses TP2.\n\nNote: Use 'NOW' as the entry to enter a market execution trade."
+
+    # sends messages to user
+    update.effective_message.reply_text(help_message)
+    update.effective_message.reply_text(commands)
+    update.effective_message.reply_text(trade_example + market_execution_example + limit_example + note)
+
+    return
+
+def cancel(update: Update, context: CallbackContext) -> int:
+    """Cancels and ends the conversation.   
+    
+    Arguments:
+        update: update from Telegram
+        context: CallbackContext object that stores commonly used objects in handler callbacks
+    """
+
+    update.effective_message.reply_text("Command has been canceled.")
+
+    # removes trade from user context data
+    context.user_data['trade'] = None
+
+    return ConversationHandler.END
+
+def error(update: Update, context: CallbackContext) -> None:
+    """Logs Errors caused by updates.
+
+    Arguments:
+        update: update from Telegram
+        context: CallbackContext object that stores commonly used objects in handler callbacks
+    """
+
+    logger.warning('Update "%s" caused error "%s"', update, context.error)
+
+    return
+
+def Trade_Command(update: Update, context: CallbackContext) -> int:
+    """Asks user to enter the trade they would like to place.
+
+    Arguments:
+        update: update from Telegram
+        context: CallbackContext object that stores commonly used objects in handler callbacks
+    """
+    if(not(update.effective_message.chat.username == TELEGRAM_USER)):
+        update.effective_message.reply_text("You are not authorized to use this bot! 🙅🏽‍♂️")
+        return ConversationHandler.END
+    
+    # initializes the user's trade as empty prior to input and parsing
+    context.user_data['trade'] = None
+    
+    # asks user to enter the trade
+    update.effective_message.reply_text("Please enter the trade that you would like to place.")
+
+    return TRADE
+
+def Calculation_Command(update: Update, context: CallbackContext) -> int:
+    """Asks user to enter the trade they would like to calculate trade information for.
+
+    Arguments:
+        update: update from Telegram
+        context: CallbackContext object that stores commonly used objects in handler callbacks
+    """
+    if(not(update.effective_message.chat.username == TELEGRAM_USER)):
+        update.effective_message.reply_text("You are not authorized to use this bot! 🙅🏽‍♂️")
+        return ConversationHandler.END
+
+    # initializes the user's trade as empty prior to input and parsing
+    context.user_data['trade'] = None
+
+    # asks user to enter the trade
+    update.effective_message.reply_text("Please enter the trade that you would like to calculate.")
+
+    return CALCULATE
+
 
 def main() -> None:
-    """Starts the bot."""
+    """Runs the Telegram bot."""
+
     updater = Updater(TOKEN, use_context=True)
+
+    # get the dispatcher to register handlers
     dp = updater.dispatcher
 
-    # Message handler for processing signals directly
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, PlaceTrade))
+    # message handler
+    dp.add_handler(CommandHandler("start", welcome))
 
-    # Other handlers (welcome, help, unknown_command, error, etc.)
+    # help command handler
     dp.add_handler(CommandHandler("help", help))
-    dp.add_handler(MessageHandler(Filters.command, unknown_command))
+
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("trade", Trade_Command), CommandHandler("calculate", Calculation_Command)],
+        states={
+            TRADE: [MessageHandler(Filters.text & ~Filters.command, PlaceTrade)],
+            CALCULATE: [MessageHandler(Filters.text & ~Filters.command, CalculateTrade)],
+            DECISION: [CommandHandler("yes", PlaceTrade), CommandHandler("no", cancel)]
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+
+    # conversation handler for entering trade or calculating trade information
+    dp.add_handler(conv_handler)
+
+    # message handler for all messages that are not included in conversation handler
+    dp.add_handler(MessageHandler(Filters.text, unknown_command))
+
+    # log all errors
     dp.add_error_handler(error)
-
-    # Start the Bot
-    if APP_URL:
-        updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN)
-        updater.bot.setWebhook(APP_URL + TOKEN)
-    else:
-        updater.start_polling()
-
+    
+    # listens for incoming updates from Telegram
+    updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
     updater.idle()
+
+    return
+
 
 if __name__ == '__main__':
     main()
