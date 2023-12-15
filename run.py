@@ -39,14 +39,11 @@ CALCULATE, TRADE, DECISION = range(3)
 # allowed FX symbols
 SYMBOLS = ['AUDCAD', 'AUDCHF', 'AUDJPY', 'AUDNZD', 'AUDUSD', 'CADCHF', 'CADJPY', 'CHFJPY', 'EURAUD', 'EURCAD', 'EURCHF', 'EURGBP', 'EURJPY', 'EURNZD', 'EURUSD', 'GBPAUD', 'GBPCAD', 'GBPCHF', 'GBPJPY', 'GBPNZD', 'GBPUSD', 'NOW', 'NZDCAD', 'NZDCHF', 'NZDJPY', 'NZDUSD', 'USDCAD', 'USDCHF', 'USDJPY', 'XAGUSD', 'XAUUSD']
 
-# Default risk factor for 0.01 lot size
+# Default risk factor and lot size
 DEFAULT_RISK_FACTOR = 0.01
 
-# RISK FACTOR
-RISK_FACTOR = float(os.environ.get("RISK_FACTOR", DEFAULT_RISK_FACTOR))
-    
 # Helper Functions
-def GetTradeInformation(update: Update, trade: dict, balance: float) -> None:
+def ParseSignal(signal: str) -> dict:
     """Calculates information from given trade including stop loss and take profit in pips, position size, and potential loss/profit.
 
     Arguments:
