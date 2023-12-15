@@ -46,45 +46,23 @@ DEFAULT_RISK_FACTOR = float(os.environ.get("RISK_FACTOR", 0.01))
 
 # Helper Functions
 def ParseSignal(signal: str, risk_factor: float) -> dict:
-    """Parses the signal and extracts trade information.
-
-    Args:
-        signal (str): Trading signal.
-        risk_factor (float): Risk factor for position sizing.
-
-    Returns:
-        dict: Dictionary containing trade signal information.
-    """
-    trade = {}
-
-    # Extract signal components using regular expressions
-    matches = re.findall(r'(BUY|SELL) (\w+)', signal)
-    if not matches:
-        # Log and return if the signal format is not recognized
-        logger.error('Invalid signal format: %s', signal)
-        return {}
-
-    order_type, symbol = matches[0]
-    trade['OrderType'] = order_type
-    trade['Symbol'] = symbol.upper()
+    # ... (previous code)
 
     # Extract entry, stop loss, and take profits
-   entry_match = re.search(r'@ (\d+(\.\d+)?)|at cmp', signal)
-sl_match = re.search(r'SL@ (\d+(\.\d+)?)', signal)
-tp_matches = re.findall(r'TP\d+@ (\d+(\.\d+)?)', signal)
+    entry_match = re.search(r'@ (\d+(\.\d+)?)|at cmp', signal)
+    sl_match = re.search(r'SL@ (\d+(\.\d+)?)', signal)
+    tp_matches = re.findall(r'TP\d+@ (\d+(\.\d+)?)', signal)
 
-if not entry_match or not sl_match:
-    # Log and return if entry or stop loss is not found
-    logger.error('Entry or stop loss not found in signal: %s', signal)
-    return {}
+    if not entry_match or not sl_match:
+        # Log and return if entry or stop loss is not found
+        logger.error('Entry or stop loss not found in signal: %s', signal)
+        return {}
 
-trade['Entry'] = float(entry_match.group(1)) if entry_match and entry_match.group(1) != 'at cmp' else 'NOW'
-trade['StopLoss'] = float(sl_match.group(1)) if sl_match else 0  # Provide a default value if sl_match is None
-trade['TP'] = [float(tp_match[0]) for tp_match in tp_matches] if tp_matches else []
+    trade['Entry'] = float(entry_match.group(1)) if entry_match and entry_match.group(1) != 'at cmp' else 'NOW'
+    trade['StopLoss'] = float(sl_match.group(1)) if sl_match else 0
+    trade['TP'] = [float(tp_match[0]) for tp_match in tp_matches] if tp_matches else []
 
-
-    # Add risk factor to trade
-    trade['RiskFactor'] = risk_factor
+    # ... (rest of the code)
 
     return trade
 
