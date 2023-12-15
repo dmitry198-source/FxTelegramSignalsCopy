@@ -371,6 +371,9 @@ def PlaceTrade(update: Update, context: CallbackContext) -> None:
         errorMessage = f"There was an error processing this trade 😕\n\nError: {error}\n\nPlease make sure your signal format is correct."
         update.effective_message.reply_text(errorMessage)
 
+def unknown_command(update, context):
+    update.message.reply_text("Sorry, I didn't understand that command.")
+
 # Command Handlers
 def Trade_Command(update: Update, context: CallbackContext) -> None:
     """Does not have any specific functionality. Trades are processed directly in MessageHandler.
