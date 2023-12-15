@@ -390,7 +390,6 @@ def main() -> None:
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, PlaceTrade))
 
     # Other handlers (welcome, help, unknown_command, error, etc.)
-    dp.add_handler(CommandHandler("start", welcome))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(MessageHandler(Filters.command, unknown_command))
     dp.add_error_handler(error)
