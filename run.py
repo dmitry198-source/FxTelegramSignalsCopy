@@ -68,14 +68,19 @@ def ParseSignal(signal: str, risk_factor: float) -> dict:
             trade['OrderType'] = keyword
             break
     else:
-        # returns an empty dictionary if an invalid order type was given
+        # Log the invalid order type
+        logger.error('Invalid order type: %s', signal[0])
         return {}
 
     # extracts symbol from trade signal
     trade['Symbol'] = (signal[0].split())[-1].upper()
 
-    # checks if the symbol is valid, if not, returns an empty dictionary
+    # Log the parsed signal
+    logger.info('Parsed signal: %s', trade)
+
+    # checks if the symbol is valid, if not, log and return an empty dictionary
     if trade['Symbol'] not in SYMBOLS:
+        logger.error('Invalid symbol: %s', trade['Symbol'])
         return {}
 
     # checks whether or not to convert entry to float because of market execution option ("NOW")
