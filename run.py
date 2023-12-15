@@ -43,13 +43,15 @@ SYMBOLS = ['AUDCAD', 'AUDCHF', 'AUDJPY', 'AUDNZD', 'AUDUSD', 'CADCHF', 'CADJPY',
 DEFAULT_RISK_FACTOR = 0.01
 
 # Helper Functions
-def ParseSignal(signal: str) -> dict:
-    """Calculates information from given trade including stop loss and take profit in pips, position size, and potential loss/profit.
+def ParseSignal(signal: str, risk_factor: float) -> dict:
+    """Starts the process of parsing the signal and entering the trade on the MetaTrader account.
 
     Arguments:
-        update: update from Telegram
-        trade: dictionary that stores trade information
-        balance: current balance of the MetaTrader account
+        signal: trading signal
+        risk_factor: the risk factor for position sizing
+
+    Returns:
+        a dictionary that contains trade signal information
     """
 
     # converts message to list of strings for parsing
@@ -89,7 +91,7 @@ def ParseSignal(signal: str) -> dict:
         trade['TP'].append(float(signal[4].split()[-1]))
 
     # adds risk factor to trade
-    trade['RiskFactor'] = RISK_FACTOR
+    trade['RiskFactor'] = risk_factor
 
     return trade
 
