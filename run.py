@@ -3,7 +3,6 @@ import asyncio
 import logging
 import math
 import os
-import re
 
 try:
     from typing import Literal
@@ -44,6 +43,7 @@ SYMBOLS = ['AUDCAD', 'AUDCHF', 'AUDJPY', 'AUDNZD', 'AUDUSD', 'CADCHF', 'CADJPY',
 RISK_FACTOR = float(os.environ.get("RISK_FACTOR"))
 
 
+# Helper Functions
 def ParseSignal(signal: str) -> dict:
     """Starts process of parsing signal and entering trade on MetaTrader account.
 
@@ -60,25 +60,52 @@ def ParseSignal(signal: str) -> dict:
 
     trade = {}
 
-    # Use regular expression to extract information from the signal
-    matches = re.findall(r"#(\w+)\*\*(\w+)\s+(\w+)\s*:\s*([\d.]+)", signal[1])
+    # determines the order type of the trade
+    if('Buy Limit'.lower() in signal[0].lower()):
+        trade['OrderType'] = 'Buy Limit'
 
-    if not matches:
-        return {}  # Return empty dictionary for invalid signals
+    elif('Sell Limit'.lower() in signal[0].lower()):
+        trade['OrderType'] = 'Sell Limit'
 
-    for match in matches:
-        symbol, order_type, price_type, price_value = match
-        trade['Symbol'] = symbol.upper()
-        trade['OrderType'] = order_type.capitalize()
-        trade[price_type.capitalize()] = float(price_value)
+    elif('Buy Stop'.lower() in signal[0].lower()):
+        trade['OrderType'] = 'Buy Stop'
 
+    elif('Sell Stop'.lower() in signal[0].lower()):
+        trade['OrderType'] = 'Sell Stop'
+
+    elif('Buy'.lower() in signal[0].lower()):
+        trade['OrderType'] = 'Buy'
+    
+    elif('Sell'.lower() in signal[0].lower()):
+        trade['OrderType'] = 'Sell'
+    
+    # returns an empty dictionary if an invalid order type was given
+    else:
+        return {}
+
+    # extracts symbol from trade signal
+    trade['Symbol'] = (signal[0].split())[-1].upper()
+    
+    # checks if the symbol is valid, if not, returns an empty dictionary
+    if(trade['Symbol'] not in SYMBOLS):
+        return {}
+    
+    # checks wheter or not to convert entry to float because of market exectution option ("NOW")
+    if(trade['OrderType'] == 'Buy' or trade['OrderType'] == 'Sell'):
+        trade['Entry'] = (signal[1].split())[-1]
+    
+    else:
+        trade['Entry'] = float((signal[1].split())[-1])
+    
+    trade['StopLoss'] = float((signal[2].split())[-1])
+    trade['TP'] = [float((signal[3].split())[-1])]
+
+    # checks if there's a fourth line and parses it for TP2
+    if(len(signal) > 4):
+        trade['TP'].append(float(signal[4].split()[-1]))
+    
     # adds risk factor to trade
     trade['RiskFactor'] = RISK_FACTOR
-
-    # additional parsing logic for entry, stop loss, take profit, etc.
-
-    # removes the risk factor from the trade
-    trade['LotSize'] = 0.01  # Set lot size to 0.01
 
     return trade
 
