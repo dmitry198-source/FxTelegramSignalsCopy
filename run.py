@@ -60,7 +60,15 @@ def ParseSignal(signal: str, risk_factor: float) -> dict:
 
 # Helper Functions
 def GetTradeInformation(update: Update, trade: dict, balance: float) -> None:
-    """Calculates information from given trade including stop loss and take profit in pips, position size, and potential loss
+    """Calculates information from given trade including stop loss and take profit in pips, position size, and potential loss.
+
+    Arguments:
+        update: update from Telegram
+        trade: dictionary that stores trade information
+        balance: current balance of the MetaTrader account
+    """
+    # ... (rest of the function)
+
 def Calculation_Command(update: Update, context: CallbackContext) -> int:
     """Starts the process of calculating trade information based on a given signal.
 
@@ -75,7 +83,6 @@ def Calculation_Command(update: Update, context: CallbackContext) -> int:
     # ... (your existing Calculation_Command function)
 
     return CALCULATE
-
 
 def main() -> None:
     """Starts the bot."""
