@@ -160,7 +160,7 @@ def GetTradeInformation(update: Update, trade: dict, balance: float) -> None:
     default_risk_factor = 0.01
 
     # calculates the position size using the default risk factor for 0.01 lot size
-    trade['PositionSize'] = default_risk_factor
+    trade['PositionSize'] = 0.01
 
     # calculates the take profit(s) in pips
     takeProfitPips = []
