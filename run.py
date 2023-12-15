@@ -180,18 +180,18 @@ def GetTradeInformation(update: Update, trade: dict, balance: float) -> None:
 
     return
 
-def CreateTable(trade: dict, balance: float, stopLossPips: int, takeProfitPips: int) -> PrettyTable:
-    """Creates PrettyTable object to display trade information to user.
+def CreateTable(trade: dict, balance: float, stopLossPips: int, takeProfitPips: list) -> PrettyTable:
+    """Creates PrettyTable object to display trade information to the user.
 
     Arguments:
         trade: dictionary that stores trade information
         balance: current balance of the MetaTrader account
         stopLossPips: the difference in pips from stop loss price to entry price
+        takeProfitPips: a list of integers, each representing the difference in pips from take profit price to entry price
 
     Returns:
         a Pretty Table object that contains trade information
     """
-
     # creates prettytable object
     table = PrettyTable()
     
